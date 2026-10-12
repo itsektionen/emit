@@ -1,0 +1,24 @@
+# Repo-wide ignores. Stack-specific rules live in backend/.gitignore and frontend/.gitignore
+
+# dotenv files
+.env
+
+# AI slop tools
+.claude/
+CLAUDE.md
+AGENTS.md
+
+# Editors
+.vs/
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

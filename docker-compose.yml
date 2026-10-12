@@ -1,0 +1,62 @@
+# `docker compose up` starts the following services:
+# - Postgres
+# - The .NET API (hot reload via dotnet watch), on http://localhost:5189
+# - The SvelteKit frontend (Vite dev server), on http://localhost:5173
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: emit
+      POSTGRES_PASSWORD: emit
+      POSTGRES_DB: emit
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "emit"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    command: ["/app/entrypoint.sh"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:5189
+      ConnectionStrings__Default: Host=db;Port=5432;Database=emit;Username=emit;Password=emit
+      # Polling makes file watching work on bind mounts from macOS/Windows hosts too
+      DOTNET_USE_POLLING_FILE_WATCHER: "true"
+      # Restart instead of prompting when a change can't be hot-reloaded
+      DOTNET_WATCH_RESTART_ON_RUDE_EDIT: "true"
+    ports: ["5189:5189"]
+    volumes:
+      - ./backend:/app
+      # So that we can have separate build files for the host and the container
+      - api_bin:/app/src/Emit.Api/bin
+      - api_obj:/app/src/Emit.Api/obj
+      - nuget:/root/.nuget/packages
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    command: ["/app/entrypoint.sh"]
+    environment:
+      API_URL: http://api:5189
+      TZ: Europe/Stockholm
+    ports: ["5173:5173"]
+    volumes:
+      - ./frontend:/app
+      # So that we can have separate node_modules for the host and the container
+      - frontend_node_modules:/app/node_modules
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  api_bin:
+  api_obj:
+  nuget:
+  frontend_node_modules:
